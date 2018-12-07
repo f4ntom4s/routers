@@ -2,45 +2,51 @@ import sys
 
 
 class BucketNodePriorityQueue:
-    def __init__(self, max_diff):
-        self.buckets = [[]] * (max_diff + 1)
-        self.min_bucket = sys.float_info.max
+    def __init__(self):
+        self.buckets = [[]]
+        self.current = 0
 
-    def append(self, distance, node):
-        #check if element exist in bucket
-        for elem in self.buckets[distance]:
-            if elem.label == node.label:
-                return
+    def append(self, distance, node, old_distance):
+        if old_distance < len(self.buckets) and old_distance != distance:
+            i = 0
+            bucket_length = len(self.buckets[old_distance])
+            while i < bucket_length:
+                if self.buckets[old_distance][i] == node:
+                    self.buckets[old_distance].pop(i)
+                    bucket_length -= 1
+                else:
+                    i += 1
 
+        if distance > len(self.buckets):
+            self.buckets.extend([[]] * (distance - len(self.buckets) + 1))
         self.buckets[distance].append(node)
-        if self.min_bucket > distance:
-            self.min_bucket = distance
 
     def pop(self, visited):
-        while len(self.buckets[self.min_bucket]):
-            first_element = self.buckets[self.min_bucket].pop(0)
-            if not visited[first_element.index]:
-                return first_element
         self.find_next_bucket()
-        return self.buckets[self.min_bucket].pop(0)
+        while not self.empty():
+            while len(self.buckets[self.current]) != 0:
+                first_element = self.buckets[self.current].pop()
+                if not visited[first_element.index]:
+                    return first_element
+            self.find_next_bucket()
+        return -1
 
     def empty(self):
-        #print([x.label for x in self.buckets[35]])
-        if self.min_bucket >= sys.float_info.max:
+        if self.current == len(self.buckets):
             return True
-        if len(self.buckets[self.min_bucket]):
+        if len(self.buckets[self.current]):
             return False
         self.find_next_bucket()
-        if self.min_bucket >= sys.float_info.max:
+        if self.current == len(self.buckets):
             return True
         return False
 
     def find_next_bucket(self):
-        for i in range(self.min_bucket, len(self.buckets)):
+        for i in range(self.current, len(self.buckets)):
             if len(self.buckets[i]):
-                self.min_bucket = i
+                self.current = i
                 return
-        self.min_bucket = sys.float_info.max
+        self.current = len(self.buckets)
         return
 
 
@@ -48,7 +54,7 @@ class NodePriorityQueue:
     def __init__(self):
         self.queue = []
 
-    def append(self, distance, node):
+    def append(self, distance, node, old_distance):
         self.queue.append([distance, node])
 
     def pop(self, visited):
@@ -58,19 +64,18 @@ class NodePriorityQueue:
         queue_len = len(self.queue)
         i = 0
 
-        print([x[1].label for x in self.queue])
-        while i < queue_len - 1:
-            if self.queue[i][0] < self.queue[min_index][0] and not visited[self.queue[i][1].index]:
-                min_index = i
-
+        while i < queue_len:
             if visited[self.queue[i][1].index]:
-                del self.queue[i]
-                queue_len -= 1
+                self.queue.pop(i)
+                queue_len = len(self.queue)
+                if queue_len == 0:
+                    return -1
             else:
+                if self.queue[i][0] < self.queue[min_index][0]:
+                    min_index = i
                 i += 1
-
-        node = self.queue[min_index][1]
-        del self.queue[min_index]
+        pair = self.queue.pop(min_index)
+        node = pair[1]
         return node
 
     def empty(self):
@@ -84,8 +89,6 @@ class Node:
         self.label = label
         self.neightboors = []
         self.costs = []
-        self.nearest = -1
-        self.nearest_distance = sys.float_info.max
         self.index = label - 1
 
     def __str__(self):
@@ -95,7 +98,4 @@ class Node:
         self.neightboors.append(destination)
         self.costs.append(cost)
 
-        if cost < self.nearest_distance:
-            self.nearest_distance = cost
-            self.nearest = destination
 
